@@ -35,6 +35,37 @@ const THEMES = {
   light: { grid: '#d8d8e4', highlight: 'rgba(0,0,0,0.10)' },
 };
 
+const NEON_COLORS = [
+  null,
+  '#00e5ff', // I
+  '#fff200', // O
+  '#e040fb', // T
+  '#39ff14', // S
+  '#ff1744', // Z
+  '#2979ff', // J
+  '#ff9100', // L
+  '#b0bec5', // N
+];
+
+const PASTEL_COLORS = [
+  null,
+  '#a8e6f0', // I
+  '#fff3b0', // O
+  '#e0bbf0', // T
+  '#c1f0c1', // S
+  '#f5b8b8', // Z
+  '#b8d4f5', // J
+  '#f5d3a8', // L
+  '#d9d9d9', // N
+];
+
+const SKIN_PALETTES = {
+  retro: COLORS,
+  neon: NEON_COLORS,
+  pastel: PASTEL_COLORS,
+  pixel: COLORS,
+};
+
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 const nextCanvas = document.getElementById('next-canvas');
@@ -47,15 +78,28 @@ const overlayTitle = document.getElementById('overlay-title');
 const overlayScore = document.getElementById('overlay-score');
 const restartBtn = document.getElementById('restart-btn');
 const themeToggle = document.getElementById('theme-toggle');
+const skinSelect = document.getElementById('skin-select');
 
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
 let theme = localStorage.getItem('tetris-theme') === 'light' ? 'light' : 'dark';
+let currentSkin = localStorage.getItem('tetris-skin') || 'retro';
 
 function applyTheme(t) {
   theme = t;
   document.body.classList.toggle('light', t === 'light');
   themeToggle.checked = t === 'light';
   localStorage.setItem('tetris-theme', t);
+}
+
+function applySkin(s) {
+  currentSkin = s;
+  document.body.classList.toggle('skin-neon', s === 'neon');
+  skinSelect.value = s;
+  localStorage.setItem('tetris-skin', s);
+  if (typeof board !== 'undefined' && board) {
+    draw();
+    drawNext();
+  }
 }
 
 function createBoard() {
@@ -174,13 +218,62 @@ function updateHUD() {
 
 function drawBlock(context, x, y, colorIndex, size, alpha) {
   if (!colorIndex) return;
-  const color = COLORS[colorIndex];
+  const color = SKIN_PALETTES[currentSkin][colorIndex];
+  const px = x * size + 1;
+  const py = y * size + 1;
+  const w = size - 2;
+  const h = size - 2;
   context.globalAlpha = alpha ?? 1;
-  context.fillStyle = color;
-  context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
-  // highlight
-  context.fillStyle = THEMES[theme].highlight;
-  context.fillRect(x * size + 1, y * size + 1, size - 2, 4);
+
+  if (currentSkin === 'neon') {
+    context.save();
+    context.shadowColor = color;
+    context.shadowBlur = 12;
+    context.fillStyle = color;
+    context.fillRect(px, py, w, h);
+    context.restore();
+    context.fillStyle = 'rgba(255,255,255,0.25)';
+    context.fillRect(px, py, w, 4);
+  } else if (currentSkin === 'pastel') {
+    const r = Math.min(6, w / 4, h / 4);
+    context.fillStyle = color;
+    context.beginPath();
+    if (context.roundRect) {
+      context.roundRect(px, py, w, h, r);
+    } else {
+      context.rect(px, py, w, h);
+    }
+    context.fill();
+    context.fillStyle = THEMES[theme].highlight;
+    context.beginPath();
+    if (context.roundRect) {
+      context.roundRect(px, py, w, 4, [r, r, 0, 0]);
+    } else {
+      context.rect(px, py, w, 4);
+    }
+    context.fill();
+  } else if (currentSkin === 'pixel') {
+    context.fillStyle = color;
+    context.fillRect(px, py, w, h);
+    // pixel/checker texture
+    const dot = Math.max(2, Math.floor(size / 6));
+    context.fillStyle = 'rgba(0,0,0,0.18)';
+    for (let ty = 0; ty < h; ty += dot * 2) {
+      for (let tx = 0; tx < w; tx += dot * 2) {
+        context.fillRect(px + tx, py + ty, dot, dot);
+        context.fillRect(px + tx + dot, py + ty + dot, dot, dot);
+      }
+    }
+    context.fillStyle = THEMES[theme].highlight;
+    context.fillRect(px, py, w, 4);
+  } else {
+    // retro
+    context.fillStyle = color;
+    context.fillRect(px, py, w, h);
+    context.fillStyle = THEMES[theme].highlight;
+    context.fillRect(px, py, w, 4);
+  }
+
   context.globalAlpha = 1;
 }
 
@@ -318,6 +411,8 @@ document.addEventListener('keydown', e => {
 
 restartBtn.addEventListener('click', init);
 themeToggle.addEventListener('change', () => applyTheme(themeToggle.checked ? 'light' : 'dark'));
+skinSelect.addEventListener('change', () => applySkin(skinSelect.value));
 
 applyTheme(theme);
 init();
+applySkin(currentSkin);
