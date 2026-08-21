@@ -59,15 +59,17 @@
             <li><kbd>P</kbd> pausa</li>
           </ul>
         </div>
+
+        <div class="panel-section" id="leaderboard-section">
+          <span class="label">TOP 5</span>
+          <ol id="leaderboard-list" class="leaderboard-list"></ol>
+          <button id="reset-scores-btn" class="link-btn">Resetear records</button>
+        </div>
       </aside>
     </div>
 
     <div id="overlay" class="overlay hidden">
-      <div class="overlay-box">
-        <p id="overlay-title">GAME OVER</p>
-        <p id="overlay-score"></p>
-        <button id="restart-btn">Reiniciar</button>
-      </div>
+      <div id="overlay-box" class="overlay-box"></div>
     </div>
   </div>
 
